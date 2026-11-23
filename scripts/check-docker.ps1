@@ -15,8 +15,12 @@ foreach ($url in @("$direct/health", "$base/health")) {
 }
 
 Write-Host '3) GET /items from PostgreSQL via Nginx:' -ForegroundColor Cyan
-$items = @(Invoke-RestMethod -Uri "$base/items")
-if ($items.Count -lt 4) { throw 'Expected four seeded items.' }
+$items = Invoke-RestMethod -Uri "$base/items"
+
+if ($items.Count -lt 4) {
+    throw 'Expected four seeded items.'
+}
+
 Write-Host "PASS: $($items.Count) items"
 
 Write-Host '4) Real POST + Idempotency-Key replay and cleanup:' -ForegroundColor Cyan
