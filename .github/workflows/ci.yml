@@ -1,0 +1,191 @@
+name: TaskFlow CI/CD
+
+# CI on each push/PR; publishing only on a version tag or a manual run.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# No write access by default. Only publish job gets packages: write.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, tests & smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22 with npm cache
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: JavaScript syntax check
+        run: npm run lint 2>&1 | tee ci-lint.log
+
+      - name: Unit and HTTP integration tests
+        run: npm test 2>&1 | tee ci-tests.log
+
+      - name: Start API and smoke-test HTTP endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=39117 node src/server.js > ci-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in {1..25}; do
+            if curl --fail --silent http://127.0.0.1:39117/health > ci-health.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            cat ci-server.log
+            exit 1
+          fi
+          curl --fail --silent --show-error http://127.0.0.1:39117/items > ci-items.json
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const items = JSON.parse(fs.readFileSync("ci-items.json", "utf8"));
+            if (!Array.isArray(items) || items.length < 4) process.exit(1);
+            console.log(`Smoke test PASS: ${items.length} items`);
+          '
+
+      - name: CI job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## TaskFlow CI"
+            echo "- Node.js: 22"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- JavaScript syntax check, unit/HTTP tests, API smoke test"
+            echo "- Test logs available under **Artifacts** (when produced)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload lint/test/HTTP logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: taskflow-ci-logs
+          path: |
+            ci-lint.log
+            ci-tests.log
+            ci-server.log
+            ci-health.json
+            ci-items.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  docker-build:
+    name: Docker build / ${{ matrix.service }}
+    needs: ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            dockerfile: Dockerfile
+          - service: web
+            dockerfile: frontend/Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build container without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./${{ matrix.dockerfile }}
+          push: false
+          tags: taskflow-${{ matrix.service }}:ci
+
+  publish:
+    name: GHCR publish / ${{ matrix.service }}
+    needs: [ci, docker-build]
+    # A PR never receives package publication credentials.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            dockerfile: Dockerfile
+          - service: web
+            dockerfile: frontend/Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Compute lower-case GHCR image name
+        id: image
+        shell: bash
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: |
+          echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-${SERVICE}" >> "$GITHUB_OUTPUT"
+
+      - name: Set image tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=sha,format=long,prefix=sha-
+            type=ref,event=tag
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=TaskFlow ${{ matrix.service }} from course project
+
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish container image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Published image summary
+        if: success()
+        shell: bash
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          {
+            echo "## GHCR: ${{ matrix.service }}"
+            echo '```text'
+            printf '%s\n' "$IMAGE_TAGS"
+            echo '```'
+            echo "Container was published using GITHUB_TOKEN."
+          } >> "$GITHUB_STEP_SUMMARY"

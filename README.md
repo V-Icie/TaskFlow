@@ -1,7 +1,7 @@
-# TaskFlow — курсова на основі практичних №1–6
+# TaskFlow — курсова на основі практичних №1–7
 
 **Тема:** базовий клієнт — бекенд — база даних.  
-**Тема індивідуального проєкту:** TaskFlow, система керування завданнями. Практичні послідовно доповнюють одну курсову роботу.
+**Тема індивідуального проєкту:** TaskFlow, система керування завданнями. **Формат виконання: сольний проєкт, без вигаданих учасників чи PR.** Практичні послідовно доповнюють одну курсову роботу.
 
 ## Що реалізовано
 
@@ -272,3 +272,63 @@ docker compose down  # НЕ видаляє PostgreSQL volume
 > Якщо локально вже запущений `npm start` на 3000, зупини його через Ctrl+C перед Docker Compose, інакше порт 3000 буде зайнятий. Дані старої локальної SQLite **автоматично не переносяться** у PostgreSQL: це окреме навчальне середовище.
 
 **Важливо:** тут, у середовищі створення файлів, Docker Engine і npm registry недоступні. Отже, результат реального `docker build`, `docker compose up` і скріншоти треба підтвердити у Windows. Усі попередні тести SQLite пройдені, а PostgreSQL перевірено mock-тестами. Статус перевірок див. `PROGRESS.md`.
+
+
+---
+
+## Практична №7: GitHub Actions CI/CD
+
+<!-- CI_BADGE_START -->
+[![TaskFlow CI](https://github.com/V-Icie/TaskFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/V-Icie/TaskFlow/actions/workflows/ci.yml)
+<!-- CI_BADGE_END -->
+
+> Перед пушем замініть `YOUR_OWNER` автоматично: `node scripts/set-ci-badge.js`.
+
+**Рішення для 90–100 балів:** власний GitHub-репозиторій, CI на `push`/`pull_request`, запуск lint-синтаксису, unit + HTTP тестів, HTTP smoke test, Docker збірки `api` і `web`. Публікація обох власних образів у GHCR при запуску `workflow_dispatch` або push тега `v*`. Готовий образ PostgreSQL є сторонньою залежністю, не власним сервісом для публікації.
+
+- Workflow: `.github/workflows/ci.yml`
+- Dependabot: `.github/dependabot.yml`
+- Локальний синтаксичний lint: `npm run lint` (це `node --check`, не ESLint).
+- Тести: `npm test`
+- Docker: використовується наявний Dockerfile (`api`) та `frontend/Dockerfile` (`web`).
+- Test log artifact: `taskflow-ci-logs` у GitHub Actions → конкретний run → Artifacts.
+- Пакети GHCR: `ghcr.io/<owner>/<repo>-api` та `ghcr.io/<owner>/<repo>-web` у нижньому регістрі. Теги: `sha-<commit>` та `vX.Y.Z` для version-tag запусків.
+- **Style points**: семантичне тегування, Dependabot, мінімальні права та concurrency, Job Summary.
+
+### Перший запуск (Windows PowerShell, один раз)
+
+```powershell
+npm install
+node scripts/set-ci-badge.js
+npm run check:lock
+npm run lint
+npm test
+git status
+```
+
+**ВАЖЛИВО:** у вихідному ZIP попередньої практичної №6 не було `package-lock.json`, хоча у вашому Git-клоні він може існувати. `npm install` повинен створити або оновити lock-файл під актуальні `express` і `pg`. Обов'язково закомітьте `package-lock.json` разом із workflow. GitHub Actions використовує `npm ci` та npm cache, тому без актуального lock-файлу CI зупиниться на кроці встановлення залежностей. Файл `node_modules` у Git не додавайте.
+
+```powershell
+git add .github package.json package-lock.json README.md PROGRESS.md scripts defense/practice-07 docs/ci
+git commit -m "Complete practice 07: CI CD and GHCR delivery"
+git push origin main
+```
+
+Відкрийте на GitHub: **Actions → TaskFlow CI/CD → останній запуск**. На звичайний push у main буде запуск CI та збірок `api` й `web`, а `publish` залишиться `skipped` (це нормально).
+
+### Публікація образів для захисту
+
+Спершу дочекайтеся зеленого запуску CI. Далі виконайте з кореня репозиторію (перевірте `git tag -l` перед створенням нового):
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Тег спричинить новий workflow, який збере й опублікує **обидва** образи в GHCR з тегами `v1.0.0` і `sha-...`. Альтернатива: на вкладці GitHub Actions вручну натиснути **Run workflow**, тоді будуть образи з `sha-...`, але без semver-тега.
+
+Після успішного запуску перевірте **Packages** у профілі/репозиторії. Якщо викладач має бачити образи без авторизації, виставте їм visibility `Public` (за потреби). Особистий PAT для публікації у власний репозиторій не потрібен: використовується `GITHUB_TOKEN` із `packages: write`.
+
+Після кожного запуску покажіть URL workflow run, скриншот зелених jobs, вкладку Artifacts, URL пакетів GHCR і Job Summary. Це **потрібно зробити у GitHub**: локальна генерація workflow не підтверджує його успішне виконання.
+
+**Захист:** `defense/practice-07/DEMO.md`, `QUESTIONS.md`, `CHECKLIST.md`. Докладно: `docs/ci/README.md`.
