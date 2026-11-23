@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>TaskFlow | Практична №1</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="TaskFlow на головну"><span class="brand-icon">✓</span> TaskFlow</a>
+      <span class="tag">Вебпрограмування · Практична 01</span>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Навчальний проєкт · Client → Backend → Database</p>
+      <h1>Завдання під контролем.<br><span>Усе починається з даних.</span></h1>
+      <p class="lead">Простий приклад повного циклу: браузер надсилає запит на Express API, сервер читає SQLite, а сторінка відображає результат.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="panel-heading">
+      <div class="panel-heading">
+        <div>
+          <p class="small-label">Список із бази даних</p>
+          <h2 id="panel-heading">Мої завдання <span id="counter" class="counter">0</span></h2>
+        </div>
+        <button type="button" id="load-button">↻ <span>Load items</span></button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite">Натисни «Load items», щоб завантажити записи з SQLite.</p>
+      <ul id="items" class="items" aria-label="Завантажені завдання"></ul>
+    </section>
+
+    <section class="architecture" aria-label="Архітектура застосунку">
+      <div><span class="dot purple"></span><strong>Frontend</strong><small>HTML · CSS · JavaScript</small></div>
+      <span class="arrow">→</span>
+      <div><span class="dot cyan"></span><strong>Backend</strong><small>Node.js · Express</small></div>
+      <span class="arrow">→</span>
+      <div><span class="dot green"></span><strong>Database</strong><small>SQLite · items</small></div>
+    </section>
+    <footer>TaskFlow · Лабораторна демонстрація · Дані зберігаються локально</footer>
+  </main>
+</body>
+</html>
