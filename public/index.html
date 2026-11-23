@@ -41,6 +41,13 @@
       <div><span class="dot green"></span><strong>Database</strong><small>SQLite · items</small></div>
     </section>
     <footer>TaskFlow · Лабораторна демонстрація · Дані зберігаються локально</footer>
-  </main>
+  <section class="task-panel" aria-labelledby="task-heading">
+  <h2 id="task-heading">Tasks CRUD (практична №4)</h2>
+  <form id="task-form"><label for="task-title">Нове завдання</label> <input id="task-title" name="title" required maxlength="120" placeholder="Назва завдання" /> <button type="submit">Create task</button></form>
+  <p id="task-feedback" role="status" aria-live="polite"></p>
+  <ul id="task-list"></ul>
+  <p class="task-note">Редагування, завершення та видалення доступні для кожного завдання.</p>
+</section>
+</main>
 </body>
 </html>

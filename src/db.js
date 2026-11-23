@@ -19,6 +19,18 @@ export function openDatabase(databasePath = process.env.DATABASE_PATH || DEFAULT
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 1 AND 120),
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','done')),
+      owner_id INTEGER NOT NULL DEFAULT 1,
+      category_id INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
   const count = db.prepare('SELECT COUNT(*) AS total FROM items').get().total;
   if (count === 0) {
     const insert = db.prepare('INSERT INTO items (name) VALUES (?)');

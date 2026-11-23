@@ -128,3 +128,25 @@ git push -u origin main
 - [`defense/practice-03/DEMO.md`](defense/practice-03/DEMO.md) — сценарій захисту.
 
 Перевірка: `npm test` (після встановлення залежностей). **GET /items залишається без змін**; повний CRUD Task планується у №4. Робота ведеться індивідуально; командні вимоги Git з методички потребують погодження з викладачем.
+
+
+## Практична №4: модульний моноліт, OpenAPI, CRUD
+
+- Стиль: **модульний моноліт**. Реалізовано `src/api/` (HTTP), `src/service/` (бізнес-операції), `domain/` (моделі), `src/tasksRepository.js` (SQL).
+- Повний CRUD для `/tasks`: `POST /tasks`, `GET /tasks`, `GET /tasks/:id`, `PATCH /tasks/:id`, `DELETE /tasks/:id`.
+- `GET /health` повертає `{ "status": "ok" }`.
+- DTO та узгоджені помилки: `error`, `code`, `details`. Дані `tasks` зберігаються у SQLite. Для навчальної версії `ownerId=1`.
+- [OpenAPI YAML](docs/api/openapi.yaml), [процедура Swagger Editor](docs/api/README.md) і [скриншот Swagger](docs/api/swagger_screenshot.png) **(додати реальний скриншот після ручної перевірки)**.
+- [ADR 0001](docs/adr/0001-architecture-style.md), [ADR 0002](docs/adr/0002-layered-architecture.md), [ADR 0003](docs/adr/0003-api-style-and-error-model.md).
+- [Сценарій захисту](defense/practice-04/DEMO.md) та [чекліст](defense/practice-04/CHECKLIST.md).
+
+Після `npm install` запустіть `npm test` та `npm start`, потім відкрийте `http://localhost:3000/`. Перевірка `GET /items` із №1 залишається доступною. **Застосунок не містить Swagger UI**, згідно методички.
+
+PowerShell приклад створення:
+
+```powershell
+$body = @{title='Нове завдання'} | ConvertTo-Json
+Invoke-RestMethod http://localhost:3000/tasks -Method Post -ContentType 'application/json' -Body $body
+```
+
+Обмеження: Express HTTP інтеграцію й браузерний Swagger слід підтвердити локально.

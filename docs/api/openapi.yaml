@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow REST API
+  version: 1.1.0
+  description: Навчальна реалізація CRUD завдань у модульному моноліті. Практична №4.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Перевірка працездатності
+      responses:
+        '200':
+          description: Сервіс працює
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /tasks:
+    get:
+      summary: Отримати всі завдання
+      responses:
+        '200':
+          description: Список завдань
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TaskResponse' }
+    post:
+      summary: Створити завдання
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTaskRequest' }
+      responses:
+        '201':
+          description: Створено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Додатний цілочисельний ідентифікатор завдання
+        schema: { type: integer, minimum: 1 }
+    get:
+      summary: Отримати завдання за ID
+      responses:
+        '200':
+          description: Завдання
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      summary: Частково оновити завдання
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTaskRequest' }
+      responses:
+        '200':
+          description: Оновлене завдання
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Видалити завдання
+      responses:
+        '204': { description: Видалено (тіло відповіді порожнє) }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  responses:
+    BadRequest:
+      description: Некоректні вхідні дані
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Завдання не знайдено
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok] }
+    CreateTaskRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120, example: Підготувати лабораторну }
+        status: { type: string, enum: [open, done], default: open }
+        categoryId: { type: integer, minimum: 1, nullable: true }
+    UpdateTaskRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        status: { type: string, enum: [open, done] }
+        categoryId: { type: integer, minimum: 1, nullable: true }
+    TaskResponse:
+      type: object
+      required: [id, title, status, ownerId, categoryId, createdAt, updatedAt]
+      properties:
+        id: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        status: { type: string, enum: [open, done] }
+        ownerId: { type: integer, minimum: 1 }
+        categoryId: { type: integer, nullable: true, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ErrorResponse:
+      type: object
+      required: [error, code, details]
+      properties:
+        error: { type: string, example: ValidationError }
+        code: { type: string, example: TITLE_REQUIRED }
+        details:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
