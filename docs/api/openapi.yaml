@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
   title: TaskFlow REST API
-  version: 1.1.0
-  description: Навчальна реалізація CRUD завдань у модульному моноліті. Практична №4.
+  version: 1.2.0
+  description: 'Навчальний TaskFlow: CRUD (практична №4) та відмовостійкість POST /tasks (практична №5).'
 servers:
-  - url: http://localhost:3000
+- url: http://localhost:3000
 paths:
   /health:
     get:
@@ -16,6 +16,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
   /tasks:
     get:
       summary: Отримати всі завдання
@@ -26,28 +29,80 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/TaskResponse' }
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
     post:
       summary: Створити завдання
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateTaskRequest' }
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
       responses:
         '201':
           description: Створено
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/TaskResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ідемпотентний ключ уже використаний для іншого тіла
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Перевищено частоту POST-запитів
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Тимчасово недоступний сервіс (демонстраційний режим)
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: POST потребує Idempotency-Key. Повтор із тим самим ключем і тілом повертає ту саму відповідь
+        201 без дублювання.
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        description: Унікальний ключ логічної операції, 8–200 ASCII-символів
+        schema:
+          type: string
+          minLength: 8
+          maxLength: 200
   /tasks/{id}:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Додатний цілочисельний ідентифікатор завдання
-        schema: { type: integer, minimum: 1 }
+    - name: id
+      in: path
+      required: true
+      description: Додатний цілочисельний ідентифікатор завдання
+      schema:
+        type: integer
+        minimum: 1
     get:
       summary: Отримати завдання за ID
       responses:
@@ -55,86 +110,192 @@ paths:
           description: Завдання
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/TaskResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '404': { $ref: '#/components/responses/NotFound' }
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
     patch:
       summary: Частково оновити завдання
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/UpdateTaskRequest' }
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
       responses:
         '200':
           description: Оновлене завдання
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/TaskResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '404': { $ref: '#/components/responses/NotFound' }
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
     delete:
       summary: Видалити завдання
       responses:
-        '204': { description: Видалено (тіло відповіді порожнє) }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '204':
+          description: Видалено (тіло відповіді порожнє)
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   responses:
     BadRequest:
       description: Некоректні вхідні дані
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
     NotFound:
       description: Завдання не знайдено
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
   schemas:
     HealthResponse:
       type: object
-      required: [status]
+      required:
+      - status
       properties:
-        status: { type: string, enum: [ok] }
+        status:
+          type: string
+          enum:
+          - ok
     CreateTaskRequest:
       type: object
       additionalProperties: false
-      required: [title]
+      required:
+      - title
       properties:
-        title: { type: string, minLength: 1, maxLength: 120, example: Підготувати лабораторну }
-        status: { type: string, enum: [open, done], default: open }
-        categoryId: { type: integer, minimum: 1, nullable: true }
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Підготувати лабораторну
+        status:
+          type: string
+          enum:
+          - open
+          - done
+          default: open
+        categoryId:
+          type: integer
+          minimum: 1
+          nullable: true
     UpdateTaskRequest:
       type: object
       additionalProperties: false
       minProperties: 1
       properties:
-        title: { type: string, minLength: 1, maxLength: 120 }
-        status: { type: string, enum: [open, done] }
-        categoryId: { type: integer, minimum: 1, nullable: true }
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          enum:
+          - open
+          - done
+        categoryId:
+          type: integer
+          minimum: 1
+          nullable: true
     TaskResponse:
       type: object
-      required: [id, title, status, ownerId, categoryId, createdAt, updatedAt]
+      required:
+      - id
+      - title
+      - status
+      - ownerId
+      - categoryId
+      - createdAt
+      - updatedAt
       properties:
-        id: { type: integer, minimum: 1 }
-        title: { type: string, minLength: 1, maxLength: 120 }
-        status: { type: string, enum: [open, done] }
-        ownerId: { type: integer, minimum: 1 }
-        categoryId: { type: integer, nullable: true, minimum: 1 }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        id:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          enum:
+          - open
+          - done
+        ownerId:
+          type: integer
+          minimum: 1
+        categoryId:
+          type: integer
+          nullable: true
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     ErrorResponse:
       type: object
-      required: [error, code, details]
+      required:
+      - error
+      - code
+      - details
+      - requestId
       properties:
-        error: { type: string, example: ValidationError }
-        code: { type: string, example: TITLE_REQUIRED }
+        error:
+          type: string
+          example: ValidationError
+        code:
+          type: string
+          example: TITLE_REQUIRED
+          nullable: true
         details:
           type: array
           items:
             type: object
-            required: [field, message]
+            required:
+            - field
+            - message
             properties:
-              field: { type: string }
-              message: { type: string }
+              field:
+                type: string
+              message:
+                type: string
+          nullable: true
+        requestId:
+          type: string
+          description: Дубль значення заголовка X-Request-Id
+  headers:
+    RequestId:
+      description: Ідентифікатор запиту для кореляції логів та помилок
+      schema:
+        type: string
+    RetryAfter:
+      description: Кількість секунд перед наступною спробою
+      schema:
+        type: integer
+        minimum: 1

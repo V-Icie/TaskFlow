@@ -31,6 +31,15 @@ export function openDatabase(databasePath = process.env.DATABASE_PATH || DEFAULT
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS idempotency_keys (
+      key TEXT PRIMARY KEY,
+      payload_hash TEXT NOT NULL,
+      response_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
   const count = db.prepare('SELECT COUNT(*) AS total FROM items').get().total;
   if (count === 0) {
     const insert = db.prepare('INSERT INTO items (name) VALUES (?)');

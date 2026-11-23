@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101827">
-  <title>TaskFlow | Практична №1</title>
+  <title>TaskFlow | Практичні №1–5</title>
   <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <script type="module" src="/app.js"></script>
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="/" aria-label="TaskFlow на головну"><span class="brand-icon">✓</span> TaskFlow</a>
-      <span class="tag">Вебпрограмування · Практична 01</span>
+      <span class="tag">Вебпрограмування · Практичні 01–05</span>
     </header>
 
     <section class="hero">
@@ -40,14 +40,29 @@
       <span class="arrow">→</span>
       <div><span class="dot green"></span><strong>Database</strong><small>SQLite · items</small></div>
     </section>
-    <footer>TaskFlow · Лабораторна демонстрація · Дані зберігаються локально</footer>
+    
   <section class="task-panel" aria-labelledby="task-heading">
-  <h2 id="task-heading">Tasks CRUD (практична №4)</h2>
+  <h2 id="task-heading">Tasks CRUD (практичні №4–5)</h2>
+  <div id="degraded-banner" class="degraded-banner" role="alert" hidden>Сервіс тимчасово перевантажений. Кнопки вимкнені на 8 секунд, після чого можна повторити дію.</div>
   <form id="task-form"><label for="task-title">Нове завдання</label> <input id="task-title" name="title" required maxlength="120" placeholder="Назва завдання" /> <button type="submit">Create task</button></form>
   <p id="task-feedback" role="status" aria-live="polite"></p>
   <ul id="task-list"></ul>
   <p class="task-note">Редагування, завершення та видалення доступні для кожного завдання.</p>
 </section>
+  <section class="resilience-panel" aria-labelledby="resilience-heading">
+    <h2 id="resilience-heading">Відмовостійкість (практична №5)</h2>
+    <p>Кожна відповідь містить X-Request-Id, створення захищено Idempotency-Key, помилки можуть бути повторені з backoff.</p>
+    <div class="demo-controls">
+      <button type="button" data-demo="fail-once">503 → retry</button>
+      <button type="button" data-demo="rate-once">429 → Retry-After</button>
+      <button type="button" data-demo="slow">Timeout 1с</button>
+      <button type="button" data-demo="fail-three">3 помилки → degraded</button>
+    </div>
+    <p id="demo-status" class="status" role="status" aria-live="polite">Перевірка демо-режиму…</p>
+    <h3>Історія повторів</h3>
+    <ul id="retry-log" aria-live="polite"></ul>
+  </section>
+    <footer>TaskFlow · Лабораторна демонстрація · Дані зберігаються локально</footer>
 </main>
 </body>
 </html>

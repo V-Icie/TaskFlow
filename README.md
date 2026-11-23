@@ -1,7 +1,7 @@
-# TaskFlow — практична №1 із вебпрограмування
+# TaskFlow — курсова на основі практичних №1–5
 
 **Тема:** базовий клієнт — бекенд — база даних.  
-**Тема командного проєкту:** TaskFlow, система керування завданнями.
+**Тема індивідуального проєкту:** TaskFlow, система керування завданнями. Практичні послідовно доповнюють одну курсову роботу.
 
 ## Що реалізовано
 
@@ -146,7 +146,88 @@ PowerShell приклад створення:
 
 ```powershell
 $body = @{title='Нове завдання'} | ConvertTo-Json
-Invoke-RestMethod http://localhost:3000/tasks -Method Post -ContentType 'application/json' -Body $body
+Invoke-RestMethod http://localhost:3000/tasks -Method Post -ContentType 'application/json' -Headers @{ 'Idempotency-Key' = [guid]::NewGuid().ToString() } -Body $body
 ```
 
 Обмеження: Express HTTP інтеграцію й браузерний Swagger слід підтвердити локально.
+
+
+---
+
+## Практична №5: відмовостійкість API та інтерфейсу
+
+Усі можливості практичних №1–4 збережено. Для п'ятої практичної додано:
+
+- **`POST /tasks` із `Idempotency-Key`:** повтор того самого запиту повертає той самий ресурс і статус 201. SQLite-таблиця `idempotency_keys` зберігає результат між перезапусками.
+- **`X-Request-Id`:** присутній у кожній HTTP-відповіді. Кожна JSON-помилка містить `error`, `code`, `details`, `requestId`.
+- **Rate limit:** стандартно 8 запитів `POST /tasks` за 10 секунд з однієї IP-адреси. Перевищення → 429 + `Retry-After`.
+- **Клієнтський retry:** для GET та захищеного POST при 5xx, 429 або мережевій помилці; максимум 2 повтори за замовчуванням, експоненційна затримка з jitter.
+- **Таймаут:** `AbortController` скасовує надто довгі запити (демонстрація `/health` з лімітом 1 секунда).
+- **Degraded mode:** після 3 послідовних невдалих операцій CRUD-кнопки блокуються на 8 секунд і показується попередження.
+- **Виправлено Edit/Delete:** редагування і підтвердження видалення відбуваються в інтерфейсі, без `prompt()`/`confirm()`.
+
+### Запуск у Windows (PowerShell)
+
+```powershell
+cd C:\Users\user\Downloads\WebLabs\TaskFlow
+npm install
+npm test
+$env:DEMO_FAILURES='1'
+npm start
+```
+
+Відкрий `http://localhost:3000/`. Після `npm start` залиш термінал відкритим.
+
+У розділі «Відмовостійкість» працюють демонстрації:
+
+- `503 → retry`: перша відповідь 503, друга — 200.
+- `429 → Retry-After`: перша відповідь 429, очікування 1 секунду, друга — 200.
+- `Timeout 1с`: `/health` затримується на 1.6 секунди, клієнт перериває запит через 1 секунду.
+- `3 помилки → degraded`: три збої 503, попереджувальний банер і блокування основних кнопок на 8 секунд.
+
+**Увага:** без `DEMO_FAILURES=1` демонстраційні кнопки вимкнені. На звичайній роботі застосунку це не позначається. Fault injection працює лише для локального доступу до сервера.
+
+У другому терміналі перевір стан:
+
+```powershell
+Invoke-RestMethod http://localhost:3000/health
+```
+
+Має повернути `status: ok`.
+
+### Ідемпотентність у PowerShell
+
+```powershell
+$key = [guid]::NewGuid().ToString()
+$headers = @{ 'Idempotency-Key' = $key }
+$body = @{ title = 'Repeat demo' } | ConvertTo-Json
+$a = Invoke-RestMethod http://localhost:3000/tasks -Method Post -ContentType 'application/json' -Headers $headers -Body $body
+$b = Invoke-RestMethod http://localhost:3000/tasks -Method Post -ContentType 'application/json' -Headers $headers -Body $body
+$a.id
+$b.id
+```
+
+Обидва значення `id` мають збігатися. Ключ має бути новим для нової логічної операції.
+
+### Зміни у структурі
+
+```text
+src/middleware/resilience.js         HTTP кореляція, rate limit, opt-in demo
+src/service/idempotencyService.js    SQL-транзакції для ідемпотентних POST
+public/lib/http.js                   Retry, backoff, Retry-After, AbortController
+public/app.js                        CRUD з inline-редагуванням та degraded mode
+public/index.html                    Демонстраційна панель
+src/db.js                            Таблиця idempotency_keys
+src/app.js                           Middleware + єдина форма помилок
+tests/idempotency.test.js            Сценарії ідемпотентності
+tests/httpResilience.test.js         Поведінка retry/timeout
+tests/middleware.test.js             Тести HTTP middleware
+tests/httpIntegration.test.js        Реальні HTTP-тести (за наявності Express)
+defense/practice-05/                Матеріали захисту для Google Meet
+```
+
+**Статус тестування:** в середовищі складання архіву пройшло **27 локальних тестів**. Два HTTP-інтеграційні тести були **пропущені**, тому що npm registry недоступний і Express там не встановлений. У твоєму Windows-середовищі після `npm install` ці два тести мають запуститися; їхню успішність треба перевірити, а не припускати.
+
+Для Google Meet використовуй [`defense/practice-05/DEMO.md`](defense/practice-05/DEMO.md), [`CHECKLIST.md`](defense/practice-05/CHECKLIST.md) та [`QUESTIONS.md`](defense/practice-05/QUESTIONS.md).
+
+Після змін перевір `docs/api/openapi.yaml` через https://editor.swagger.io/ та зафіксуй новий реальний скриншот для актуальної версії контракту API.

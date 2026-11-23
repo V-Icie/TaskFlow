@@ -4,37 +4,47 @@ import { fileURLToPath } from 'node:url';
 import { readItems } from './db.js';
 import { TasksRepository } from './tasksRepository.js';
 import { TasksService, ApiError } from './service/tasksService.js';
+import { IdempotencyService } from './service/idempotencyService.js';
 import { createTasksRouter } from './api/tasksRouter.js';
+import { requestContext, errorResponse, createRateLimiter, createDemoMiddleware, isLocalRequest } from './middleware/resilience.js';
 
 const publicDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
-export function createApp(db) {
+export function createApp(db, {
+  rateLimitMax = Number(process.env.RATE_LIMIT_MAX ?? 8),
+  rateLimitWindowMs = 10_000,
+  demoEnabled = process.env.DEMO_FAILURES === '1'
+} = {}) {
   const app = express();
   app.disable('x-powered-by');
+  app.use(requestContext);
   app.use(express.json({ limit: '16kb' }));
-  const service = new TasksService(new TasksRepository(db));
+  app.use(createRateLimiter({ max: rateLimitMax, windowMs: rateLimitWindowMs }));
+  app.use(createDemoMiddleware({ enabled: demoEnabled }));
 
-  // Practice 1 endpoint stays exactly as before.
+  const service = new TasksService(new TasksRepository(db));
+  const idempotency = new IdempotencyService(db, service);
+
+  // Previous practices remain available; /health is a simple readiness check.
   app.get('/items', (_req, res) => res.json(readItems(db)));
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-  app.use('/tasks', createTasksRouter(service));
+  app.get('/demo/config', (req, res) => res.json({ enabled: demoEnabled && isLocalRequest(req) }));
+  app.use('/tasks', createTasksRouter(service, idempotency));
   app.use(express.static(publicDirectory));
 
-  app.use((req, res, next) => {
-    if (req.path === '/tasks' || req.path.startsWith('/tasks/')) {
-      return res.status(404).json({ error: 'NotFound', code: 'ROUTE_NOT_FOUND', details: [] });
-    }
-    next();
-  });
-  app.use((err, _req, res, _next) => {
+  app.use((req, res) => res.status(404).json(errorResponse(req, 'NotFound', 'ROUTE_NOT_FOUND', [])));
+  app.use((err, req, res, _next) => {
     if (err instanceof ApiError) {
-      return res.status(err.status).json({ error: err.errorName, code: err.code, details: err.details });
+      return res.status(err.status).json(errorResponse(req, err.errorName, err.code, err.details));
     }
     if (err instanceof SyntaxError && 'body' in err) {
-      return res.status(400).json({ error: 'ValidationError', code: 'INVALID_JSON', details: [{ field: 'body', message: 'Invalid JSON' }] });
+      return res.status(400).json(errorResponse(req, 'ValidationError', 'INVALID_JSON', [{ field: 'body', message: 'Invalid JSON' }]));
+    }
+    if (err.type === 'entity.too.large') {
+      return res.status(413).json(errorResponse(req, 'ValidationError', 'BODY_TOO_LARGE', []));
     }
     console.error('Unexpected server error:', err);
-    return res.status(500).json({ error: 'InternalError', code: 'INTERNAL_ERROR', details: [] });
+    return res.status(500).json(errorResponse(req, 'InternalError', 'INTERNAL_ERROR', []));
   });
   return app;
 }

@@ -7,3 +7,14 @@
 .task-panel li { margin: .5rem 0; display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
 .task-panel button { padding: .4rem .65rem; cursor: pointer; }
 .task-note { font-size: .9rem; opacity: .75; }
+
+/* Practice 5 */
+.task-panel input, .edit-input {background:#1a2940;color:#e7edf8;border:1px solid #61738c;border-radius:9px;outline-offset:2px}
+.degraded-banner[hidden] {display:none}
+.degraded-banner {background:#5e2e2e;border:1px solid #ff9d93;color:#fff0ec;padding:15px;border-radius:10px;margin:15px 0;font-weight:700}
+.resilience-panel {margin-top:26px;padding:24px;background:#121e31;border:1px solid #2b3e57;border-radius:16px}
+.resilience-panel h3 {font-size:16px;margin-bottom:8px}
+.resilience-panel p {color:#bac7dc;line-height:1.5}
+.demo-controls {display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.demo-controls button {padding:9px 13px}
+#retry-log {font-size:13px;color:#bed1f0;line-height:1.8;padding-left:20px}
