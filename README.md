@@ -117,3 +117,14 @@ git push -u origin main
 - [Матеріали захисту](defense/practice-02/README.md) — сценарій Google Meet, питання та чекліст.
 
 Документацію можна переглядати без Node.js і Docker. Командні fork/pull request/merge мають бути виконані реально або узгоджені з викладачем для індивідуальної здачі.
+
+
+## Практична №3 — DDD (нове)
+
+- [`docs/domain/entities.md`](docs/domain/entities.md) — домен, піддомени, атрибути сутностей.
+- [`docs/domain/glossary.md`](docs/domain/glossary.md) — 10 термінів Ubiquitous Language.
+- [`docs/domain/context_map.png`](docs/domain/context_map.png) — контекстна діаграма.
+- [`domain/`](domain/) — прототипи `User`, `Task`, `Category` (без БД та HTTP).
+- [`defense/practice-03/DEMO.md`](defense/practice-03/DEMO.md) — сценарій захисту.
+
+Перевірка: `npm test` (після встановлення залежностей). **GET /items залишається без змін**; повний CRUD Task планується у №4. Робота ведеться індивідуально; командні вимоги Git з методички потребують погодження з викладачем.
