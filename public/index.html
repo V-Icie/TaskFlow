@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101827">
-  <title>TaskFlow | Практичні №1–5</title>
+  <title>TaskFlow | Практичні №1–6</title>
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/app.js"></script>
 </head>
@@ -12,13 +12,13 @@
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="/" aria-label="TaskFlow на головну"><span class="brand-icon">✓</span> TaskFlow</a>
-      <span class="tag">Вебпрограмування · Практичні 01–05</span>
+      <span class="tag">Вебпрограмування · Практичні 01–06</span>
     </header>
 
     <section class="hero">
       <p class="eyebrow">Навчальний проєкт · Client → Backend → Database</p>
       <h1>Завдання під контролем.<br><span>Усе починається з даних.</span></h1>
-      <p class="lead">Простий приклад повного циклу: браузер надсилає запит на Express API, сервер читає SQLite, а сторінка відображає результат.</p>
+      <p class="lead">Простий приклад повного циклу: браузер надсилає запит на Express API, сервер читає SQLite локально або PostgreSQL у Docker, а сторінка відображає результат.</p>
     </section>
 
     <section class="panel" aria-labelledby="panel-heading">
@@ -29,7 +29,7 @@
         </div>
         <button type="button" id="load-button">↻ <span>Load items</span></button>
       </div>
-      <p id="status" class="status" role="status" aria-live="polite">Натисни «Load items», щоб завантажити записи з SQLite.</p>
+      <p id="status" class="status" role="status" aria-live="polite">Натисни «Load items», щоб завантажити записи з бази даних.</p>
       <ul id="items" class="items" aria-label="Завантажені завдання"></ul>
     </section>
 
@@ -38,7 +38,7 @@
       <span class="arrow">→</span>
       <div><span class="dot cyan"></span><strong>Backend</strong><small>Node.js · Express</small></div>
       <span class="arrow">→</span>
-      <div><span class="dot green"></span><strong>Database</strong><small>SQLite · items</small></div>
+      <div><span class="dot green"></span><strong>Database</strong><small>SQLite / PostgreSQL · items</small></div>
     </section>
     
   <section class="task-panel" aria-labelledby="task-heading">

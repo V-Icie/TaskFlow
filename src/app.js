@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readItems } from './db.js';
 import { TasksRepository } from './tasksRepository.js';
+import { PostgresTasksRepository, PostgresIdempotencyService } from './postgres/repositories.js';
 import { TasksService, ApiError } from './service/tasksService.js';
 import { IdempotencyService } from './service/idempotencyService.js';
 import { createTasksRouter } from './api/tasksRouter.js';
@@ -22,11 +23,16 @@ export function createApp(db, {
   app.use(createRateLimiter({ max: rateLimitMax, windowMs: rateLimitWindowMs }));
   app.use(createDemoMiddleware({ enabled: demoEnabled }));
 
-  const service = new TasksService(new TasksRepository(db));
-  const idempotency = new IdempotencyService(db, service);
+  const isPostgres = db.kind === 'postgres';
+  const service = new TasksService(isPostgres
+    ? new PostgresTasksRepository(db.pool)
+    : new TasksRepository(db));
+  const idempotency = isPostgres
+    ? new PostgresIdempotencyService(db.pool)
+    : new IdempotencyService(db, service);
 
   // Previous practices remain available; /health is a simple readiness check.
-  app.get('/items', (_req, res) => res.json(readItems(db)));
+  app.get('/items', async (_req, res) => res.json(await readItems(db)));
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
   app.get('/demo/config', (req, res) => res.json({ enabled: demoEnabled && isLocalRequest(req) }));
   app.use('/tasks', createTasksRouter(service, idempotency));

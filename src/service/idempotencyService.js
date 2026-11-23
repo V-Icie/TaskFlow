@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { ApiError } from './tasksService.js';
 
 // Canonical JSON ignores object key order when hashing the request payload.
-function stableStringify(value) {
+export function stableStringify(value) {
   if (value === undefined) return 'undefined';
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
   if (value !== null && typeof value === 'object') {

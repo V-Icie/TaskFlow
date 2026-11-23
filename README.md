@@ -1,4 +1,4 @@
-# TaskFlow — курсова на основі практичних №1–5
+# TaskFlow — курсова на основі практичних №1–6
 
 **Тема:** базовий клієнт — бекенд — база даних.  
 **Тема індивідуального проєкту:** TaskFlow, система керування завданнями. Практичні послідовно доповнюють одну курсову роботу.
@@ -15,13 +15,13 @@
 
 - **Node.js 22.13+** (рекомендовано поточну LTS-версію).
 - npm та доступ до npm registry **для першого встановлення Express**.
-- Docker, PostgreSQL та додаткові інструменти не потрібні.
+- Docker і PostgreSQL не потрібні для локального режиму SQLite. Для практичної №6 Docker Desktop потрібен; PostgreSQL запускається контейнером, без локального встановлення.
 
 SQLite використовується через вбудований модуль `node:sqlite`, доступний у зазначеній версії Node.js. На деяких версіях Node 22 може з'являтися попередження про експериментальний API: для навчального стенду це допустимо.
 
 ## Запуск у Windows PowerShell
 
-Розпакуйте архів, відкрийте термінал **у папці TaskFlow-Lab01**:
+Розпакуйте архів, відкрийте термінал **у кореневій папці TaskFlow**:
 
 ```powershell
 node -v
@@ -136,7 +136,7 @@ git push -u origin main
 - Повний CRUD для `/tasks`: `POST /tasks`, `GET /tasks`, `GET /tasks/:id`, `PATCH /tasks/:id`, `DELETE /tasks/:id`.
 - `GET /health` повертає `{ "status": "ok" }`.
 - DTO та узгоджені помилки: `error`, `code`, `details`. Дані `tasks` зберігаються у SQLite. Для навчальної версії `ownerId=1`.
-- [OpenAPI YAML](docs/api/openapi.yaml), [процедура Swagger Editor](docs/api/README.md) і [скриншот Swagger](docs/api/swagger_screenshot.png) **(додати реальний скриншот після ручної перевірки)**.
+- [OpenAPI YAML](docs/api/openapi.yaml), [процедура Swagger Editor](docs/api/README.md) і [справжній скриншот Swagger](docs/api/swagger_screenshot.png), [маршрути](docs/api/swagger_default.png) та [схеми](docs/api/swagger_schemas.png).
 - [ADR 0001](docs/adr/0001-architecture-style.md), [ADR 0002](docs/adr/0002-layered-architecture.md), [ADR 0003](docs/adr/0003-api-style-and-error-model.md).
 - [Сценарій захисту](defense/practice-04/DEMO.md) та [чекліст](defense/practice-04/CHECKLIST.md).
 
@@ -226,8 +226,49 @@ tests/httpIntegration.test.js        Реальні HTTP-тести (за ная
 defense/practice-05/                Матеріали захисту для Google Meet
 ```
 
-**Статус тестування:** в середовищі складання архіву пройшло **27 локальних тестів**. Два HTTP-інтеграційні тести були **пропущені**, тому що npm registry недоступний і Express там не встановлений. У твоєму Windows-середовищі після `npm install` ці два тести мають запуститися; їхню успішність треба перевірити, а не припускати.
+**Статус перевірок практичної №5:** її 4 демонстраційні сценарії перевірив студент у браузері; у середовищі складання №5 пройшло **27 локальних тестів**. Два HTTP-інтеграційні тести були **пропущені**, тому що npm registry недоступний і Express там не встановлений. У твоєму Windows-середовищі після `npm install` ці два тести мають запуститися; їхню успішність треба перевірити, а не припускати.
 
 Для Google Meet використовуй [`defense/practice-05/DEMO.md`](defense/practice-05/DEMO.md), [`CHECKLIST.md`](defense/practice-05/CHECKLIST.md) та [`QUESTIONS.md`](defense/practice-05/QUESTIONS.md).
 
 Після змін перевір `docs/api/openapi.yaml` через https://editor.swagger.io/ та зафіксуй новий реальний скриншот для актуальної версії контракту API.
+
+
+---
+
+## Практична №6: Docker, Docker Compose та PostgreSQL (нове)
+
+**Локальний режим не змінився:** `npm install`, `npm test`, `npm start` працюють із SQLite, як у №1–5. **Docker Compose** натомість запускає три пов'язані контейнери: Nginx (`web`) → Express (`api`) → PostgreSQL (`db`). Дані в PostgreSQL зберігаються в іменованому томі `postgres_data` між звичайними `docker compose down` і `up`.
+
+- [Детальна інструкція Docker](docs/docker/README.md): всі рівні 60 / 75–89 / 90–100 балів, порти, команди PowerShell, перевірка БД, усунення помилок.
+- [`Dockerfile`](Dockerfile) — образ бекенду Node.js, `frontend/Dockerfile` — образ Nginx.
+- [`.dockerignore`](.dockerignore) — виключає `node_modules`, `.git`, локальні БД, секрети та непотрібні файли.
+- [`docker-compose.yml`](docker-compose.yml) — три сервіси `web`, `api`, `db` з healthchecks, startup order, томом даних.
+- [Швидка перевірка API](scripts/check-docker.ps1) — сценарій перевірки контейнерів, `/items`, CRUD, ідемпотентності та записів PostgreSQL.
+- [Захист №6](defense/practice-06/DEMO.md), [питання](defense/practice-06/QUESTIONS.md), [чекліст](defense/practice-06/CHECKLIST.md).
+
+### Швидкий старт (Windows PowerShell)
+
+Переконайся, що **Docker Desktop відкритий**, працює Linux Engine, а `docker run hello-world` завершується успішно.
+
+```powershell
+Copy-Item .env.docker.example .env
+notepad .env     # заміни приклад пароля на власний пароль для локальної БД
+
+docker compose up -d --build
+docker compose ps
+Invoke-RestMethod http://localhost:8080/health
+Invoke-RestMethod http://localhost:8080/items
+```
+
+- **Frontend + проксі API:** http://localhost:3000
+- **API безпосередньо:** http://localhost:8080
+- **База PostgreSQL:** лише всередині мережі Docker за адресою `db:5432`.
+
+```powershell
+.\scripts\check-docker.ps1
+docker compose down  # НЕ видаляє PostgreSQL volume
+```
+
+> Якщо локально вже запущений `npm start` на 3000, зупини його через Ctrl+C перед Docker Compose, інакше порт 3000 буде зайнятий. Дані старої локальної SQLite **автоматично не переносяться** у PostgreSQL: це окреме навчальне середовище.
+
+**Важливо:** тут, у середовищі створення файлів, Docker Engine і npm registry недоступні. Отже, результат реального `docker build`, `docker compose up` і скріншоти треба підтвердити у Windows. Усі попередні тести SQLite пройдені, а PostgreSQL перевірено mock-тестами. Статус перевірок див. `PROGRESS.md`.

@@ -1,5 +1,6 @@
 import { createApp } from './app.js';
 import { openDatabase } from './db.js';
+import { openPostgresDatabase } from './postgres/db.js';
 
 const rawPort = process.env.PORT ?? '3000';
 const port = Number(rawPort);
@@ -8,7 +9,10 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
   process.exit(1);
 }
 
-const db = openDatabase();
+// Local npm start stays on SQLite; Docker Compose selects PostgreSQL.
+const db = process.env.DB_CLIENT === 'postgres'
+  ? await openPostgresDatabase()
+  : openDatabase();
 const app = createApp(db);
 const server = app.listen(port, () => {
   console.log(`TaskFlow запущено: http://localhost:${port}`);
@@ -17,8 +21,10 @@ const server = app.listen(port, () => {
 
 function shutdown() {
   server.close(() => {
-    db.close();
-    process.exit(0);
+    Promise.resolve(db.close()).then(() => process.exit(0)).catch(error => {
+      console.error('Database shutdown failed:', error);
+      process.exit(1);
+    });
   });
 }
 process.on('SIGINT', shutdown);

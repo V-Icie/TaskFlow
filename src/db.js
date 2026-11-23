@@ -56,5 +56,8 @@ export function openDatabase(databasePath = process.env.DATABASE_PATH || DEFAULT
 }
 
 export function readItems(db) {
+  if (db.kind === 'postgres') {
+    return db.pool.query('SELECT id, name FROM items ORDER BY id ASC').then(result => result.rows);
+  }
   return db.prepare('SELECT id, name FROM items ORDER BY id ASC').all();
 }
