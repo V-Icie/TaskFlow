@@ -174,17 +174,16 @@
         "h": 6
       },
       "options": {
-        "show": "current",
-        "sortOrder": 1,
-        "maxItems": 10,
-        "stateFilter": {
-          "alerting": true,
-          "pending": true,
-          "no_data": true,
-          "ok": true,
-          "paused": true
-        }
-      }
+  "viewMode": "list",
+  "sortOrder": 1,
+  "maxItems": 10,
+  "dashboardAlerts": false,
+  "stateFilter": {
+    "firing": true,
+    "pending": true,
+    "normal": true
+  }
+}
     }
   ],
   "templating": {
