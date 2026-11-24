@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: taskflow-config
+  namespace: taskflow
+data:
+  PORT: "8080"
+  DB_CLIENT: postgres
+  DB_HOST: taskflow-db
+  DB_PORT: "5432"
+  DB_USER: taskflow
+  DB_NAME: taskflow
+  DEMO_FAILURES: "0"
+  OBSERVABILITY_ENABLED: "0"
+  RATE_LIMIT_MAX: "8"
