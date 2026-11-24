@@ -4,3 +4,6 @@ data/
 *.log
 .DS_Store
 .vscode/
+
+# Cloned teaching observability-demo (separate repo, not vendor source)
+.lab08-demo/

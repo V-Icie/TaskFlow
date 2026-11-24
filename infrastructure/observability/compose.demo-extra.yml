@@ -1,0 +1,14 @@
+# Relative paths resolve against .lab08-demo (the first Compose file).
+# This is an additional service, not a change to teacher's app / telemetry.
+services:
+  grafana:
+    volumes:
+      - ./grafana/dashboards/taskflow:/var/lib/grafana/dashboards/taskflow:ro
+  taskflow-alert-sink:
+    image: python:3.12-alpine
+    command: ["python", "/app/alert_sink.py"]
+    volumes:
+      - ../infrastructure/observability/alert_sink.py:/app/alert_sink.py:ro
+    ports:
+      - "127.0.0.1:8099:8099"
+    restart: unless-stopped

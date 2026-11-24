@@ -8,8 +8,9 @@
 | №4 | VERIFIED локально користувачем (за повідомленням) | 11 тестів, CRUD-кнопки та /items працюють; реальні Swagger-скриншоти додано до docs/api |
 | №5 | Браузерну демонстрацію підтвердив студент; 27 тестів PASS, 2 HTTP SKIP тут | Потрібне повне локальне npm test для підтвердження HTTP тестів |
 | №6 | VERIFIED локально користувачем | Docker Engine, web/api/PostgreSQL, health, 4 items, ідемпотентність; `check-docker.ps1` після виправлення: All checks passed |
-| №7 | IMPLEMENTED, очікує GitHub перевірки | Workflow, lint, tests, 2 Docker builds, GHCR delivery, Dependabot, badge |
-| №8–10 | NOT STARTED | Моніторинг і Kubernetes |
+| №7 | VERIFIED на GitHub | Workflow #4: зелений CI + 2 Docker builds + GHCR publish api/web, тег v1.0.0, 5 artifacts |
+| №8 | IMPLEMENTED (локальний Docker-запуск ще не перевірено) | Demo RED, власні Grafana dashboards, TaskFlow OTEL, Prometheus, Loki, 2 alerts |
+| №9–10 | NOT STARTED | Kubernetes |
 
 **Захист:** за відповідями викладача практичні треба захищати для оцінки вище 60 балів; викладача слід попереджати завчасно. Формат сольної роботи/заміни командних fork та PR слід погодити окремо.
 
@@ -30,3 +31,12 @@
 - [ ] Опублікувати GHCR обидва образи, зберегти посилання/скриншоти.
 
 Не позначати №7 зданою до реальної демонстрації.
+
+
+## Практична №8 (підготовлено, Docker UI ще не підтверджено)
+
+- Стенд `vivalafit/observability-demo` автоматично клонується у `.lab08-demo/`, не включається у Git TaskFlow.
+- Метрики TaskFlow `/metrics`, OTEL traces HTTP, логи filelog → Loki.
+- JSON-дашборди `My Demo RED` і `TaskFlow RED + Alerts`.
+- Два Grafana alert rules, notification policy, webhook sink.
+- Докази і фактичний захист ще потрібні.

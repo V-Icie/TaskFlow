@@ -8,6 +8,7 @@ import { TasksService, ApiError } from './service/tasksService.js';
 import { IdempotencyService } from './service/idempotencyService.js';
 import { createTasksRouter } from './api/tasksRouter.js';
 import { requestContext, errorResponse, createRateLimiter, createDemoMiddleware, isLocalRequest } from './middleware/resilience.js';
+import { createObservability } from './observability/metrics.js';
 
 const publicDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -19,6 +20,20 @@ export function createApp(db, {
   const app = express();
   app.disable('x-powered-by');
   app.use(requestContext);
+  const obsEnabled = process.env.OBSERVABILITY_ENABLED === '1';
+  const observability = createObservability({ enabled: obsEnabled, logFile: process.env.TASKFLOW_LOG_FILE || '' });
+  app.use(observability.middleware);
+  if (obsEnabled) {
+    app.get('/metrics', observability.metricsHandler);
+    // Explicitly opt-in synthetic endpoints; never enabled in standard Docker / npm start.
+    if (process.env.OBSERVABILITY_DEMO_FAILURES === '1') {
+      app.get('/observability/demo-error', (_req, res) => res.status(503).json({ error: 'DemoUnavailable' }));
+      app.get('/observability/demo-slow', async (_req, res) => {
+        await new Promise(resolve => setTimeout(resolve, 1100));
+        res.json({ status: 'slow-demo' });
+      });
+    }
+  }
   app.use(express.json({ limit: '16kb' }));
   app.use(createRateLimiter({ max: rateLimitMax, windowMs: rateLimitWindowMs }));
   app.use(createDemoMiddleware({ enabled: demoEnabled }));

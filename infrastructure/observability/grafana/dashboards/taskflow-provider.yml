@@ -1,0 +1,13 @@
+apiVersion: 1
+providers:
+  - name: TaskFlow Lab08
+    orgId: 1
+    folder: TaskFlow Lab08
+    folderUid: taskflow-lab08
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 15
+    options:
+      path: /var/lib/grafana/dashboards/taskflow
+      foldersFromFilesStructure: false

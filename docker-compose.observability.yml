@@ -1,0 +1,19 @@
+# Launch together with original docker-compose.yml, API+DB only (do not run web:
+# it uses :3000, which is reserved for the teacher's demo app in Lab 8).
+services:
+  api:
+    environment:
+      OBSERVABILITY_ENABLED: "1"
+      OBSERVABILITY_DEMO_FAILURES: "1"
+      TASKFLOW_LOG_FILE: /var/log/demo/taskflow.log
+      OTEL_SERVICE_NAME: taskflow-api
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=lab08
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: always_on
+      NODE_OPTIONS: --require @opentelemetry/auto-instrumentations-node/register
+    volumes:
+      - ./.lab08-demo/data/logs:/var/log/demo

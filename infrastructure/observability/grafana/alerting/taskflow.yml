@@ -1,0 +1,139 @@
+apiVersion: 1
+contactPoints:
+- orgId: 1
+  name: taskflow-webhook
+  receivers:
+  - uid: taskflow-webhook-receiver
+    type: webhook
+    settings:
+      url: http://taskflow-alert-sink:8099/alerts
+    disableResolveMessage: false
+policies:
+- orgId: 1
+  receiver: taskflow-webhook
+  group_by:
+  - grafana_folder
+  - alertname
+  group_wait: 5s
+  group_interval: 1m
+  repeat_interval: 15m
+groups:
+- orgId: 1
+  name: TaskFlow lab08 alerts
+  folder: taskflow-lab08
+  interval: 1m
+  rules:
+  - uid: taskflow-errors
+    title: TaskFlow 5xx error rate > 5%
+    condition: B
+    for: 0m
+    noDataState: NoData
+    execErrState: Error
+    annotations:
+      summary: Понад 5% запитів TaskFlow завершуються 5xx за 5 хвилин.
+    labels:
+      service: taskflow-api
+      practice: 08
+    isPaused: false
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: taskflow-prometheus
+      model:
+        datasource:
+          type: prometheus
+          uid: taskflow-prometheus
+        editorMode: code
+        expr: (100 * (sum(rate(http_requests_total{job="taskflow-api",status_code=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_requests_total{job="taskflow-api"}[5m])), 0.000001))
+        instant: true
+        range: false
+        refId: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        type: classic_conditions
+        conditions:
+        - evaluator:
+            params:
+            - 5
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+  - uid: taskflow-latency
+    title: TaskFlow p95 latency > 0.8s
+    condition: B
+    for: 0m
+    noDataState: NoData
+    execErrState: Error
+    annotations:
+      summary: p95 latency TaskFlow перевищила 800 мс за 5 хвилин.
+    labels:
+      service: taskflow-api
+      practice: 08
+    isPaused: false
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: taskflow-prometheus
+      model:
+        datasource:
+          type: prometheus
+          uid: taskflow-prometheus
+        editorMode: code
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="taskflow-api"}[5m])))
+        instant: true
+        range: false
+        refId: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        type: classic_conditions
+        conditions:
+        - evaluator:
+            params:
+            - 0.8
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
